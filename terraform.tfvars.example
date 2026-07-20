@@ -1,0 +1,9 @@
+# Ejemplo de variables de configuración para Terraform
+# Copia este archivo a 'terraform.tfvars' y reemplaza tus valores reales
+
+runpod_api_key = "rpa_XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"
+public_key     = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... tu_clave_ssh_publica"
+pod_name       = "comfyui-wan21-rtx4090"
+gpu_type_id    = "NVIDIA GeForce RTX 4090"
+cloud_type     = "COMMUNITY"
+gpu_count      = 1
