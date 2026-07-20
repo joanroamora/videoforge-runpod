@@ -87,6 +87,14 @@ if [ ! -d "${CUSTOM_NODES_DIR}/ComfyUI-VideoHelperSuite" ]; then
     fi
 fi
 
+if [ ! -d "${CUSTOM_NODES_DIR}/ComfyUI-WanVideoWrapper" ]; then
+    echo "--> Instalando ComfyUI-WanVideoWrapper (nodos avanzados para Wan 2.1)..."
+    git clone https://github.com/kijai/ComfyUI-WanVideoWrapper.git "${CUSTOM_NODES_DIR}/ComfyUI-WanVideoWrapper" || true
+    if [ -f "${CUSTOM_NODES_DIR}/ComfyUI-WanVideoWrapper/requirements.txt" ]; then
+        pip install -r "${CUSTOM_NODES_DIR}/ComfyUI-WanVideoWrapper/requirements.txt" || true
+    fi
+fi
+
 # -----------------------------------------------------------------------------
 # 4. Descarga de modelos: Wan2.1 (Video Gen) y Real-ESRGAN / 4x-UltraSharp (Upscaling)
 # -----------------------------------------------------------------------------
@@ -239,7 +247,7 @@ cat << 'EOF' > "${USER_WORKFLOWS_DIR}/wan21_video_workflow.json"
     },
     {
       "id": 10,
-      "type": "EmptyLatentImage",
+      "type": "EmptyWanVideoLatent",
       "pos": [400, 790],
       "size": [315, 106],
       "flags": {},
@@ -249,8 +257,8 @@ cat << 'EOF' > "${USER_WORKFLOWS_DIR}/wan21_video_workflow.json"
       "outputs": [
         {"name": "LATENT", "type": "LATENT", "links": [6]}
       ],
-      "properties": {"Node name for JS": "EmptyLatentImage"},
-      "widgets_values": [832, 480, 81]
+      "properties": {"Node name for JS": "EmptyWanVideoLatent"},
+      "widgets_values": [832, 480, 81, 1]
     },
     {
       "id": 4,
@@ -356,7 +364,13 @@ nohup cloudflared tunnel --url http://127.0.0.1:8188 > "${WORKSPACE_DIR}/cloudfl
 echo "--> [7/7] Iniciando servidor ComfyUI escuchando en 0.0.0.0:8188..."
 nohup python3 main.py --listen 0.0.0.0 --port 8188 --enable-cors-header > "${WORKSPACE_DIR}/comfyui.log" 2>&1 &
 
+sleep 5
+TRY_URL=$(grep -o 'https://[-a-zA-Z0-9.]*\.trycloudflare\.com' "${WORKSPACE_DIR}/cloudflared.log" | tail -n 1 || true)
+
 echo "======================================================================"
 echo "[$(date -u)] ¡Despliegue completado! ComfyUI está listo para usarse."
+if [ -n "${TRY_URL}" ]; then
+    echo "  URL PÚBLICA DE COMFYUI (HTTPS): ${TRY_URL}"
+fi
 echo "Puedes consultar logs en: ${WORKSPACE_DIR}/comfyui.log y ${WORKSPACE_DIR}/cloudflared.log"
 echo "======================================================================"

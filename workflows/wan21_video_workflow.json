@@ -103,7 +103,7 @@
     },
     {
       "id": 10,
-      "type": "EmptyLatentImage",
+      "type": "EmptyWanVideoLatent",
       "pos": [400, 790],
       "size": [315, 106],
       "flags": {},
@@ -113,8 +113,8 @@
       "outputs": [
         {"name": "LATENT", "type": "LATENT", "links": [6]}
       ],
-      "properties": {"Node name for JS": "EmptyLatentImage"},
-      "widgets_values": [832, 480, 81]
+      "properties": {"Node name for JS": "EmptyWanVideoLatent"},
+      "widgets_values": [832, 480, 81, 1]
     },
     {
       "id": 4,
