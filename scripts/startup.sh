@@ -116,244 +116,70 @@ DIFFUSION_DIR="${COMFYUI_DIR}/models/diffusion_models"
 
 mkdir -p "${CHECKPOINTS_DIR}" "${VAE_DIR}" "${CLIP_DIR}" "${UPSCALE_DIR}" "${DIFFUSION_DIR}"
 
-echo "--> [4/7] Descargando pesos de modelos open-source..."
+echo "--> [4/7] Descargando modelos de Wan2.1 (I2V + T2V + VAE + Text Encoder)..."
+python3 -c "
+from huggingface_hub import hf_hub_download
+import os, shutil
 
-# A) Modelo de Generación de Video Wan2.1 (Model / VAE / Text Encoder)
-if [ ! -f "${DIFFUSION_DIR}/wan2.1_t2v_1.3B_bf16.safetensors" ]; then
-    echo "    - Descargando Wan2.1 T2V 1.3B Diffusion Model..."
-    aria2c -x 16 -s 16 -k 1M -d "${DIFFUSION_DIR}" -o "wan2.1_t2v_1.3B_bf16.safetensors" \
-        "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repack/resolve/main/split_files/diffusion_models/wan2.1_t2v_1.3B_bf16.safetensors" || true
-fi
+repo = 'Comfy-Org/Wan_2.1_ComfyUI_repackaged'
 
-if [ ! -f "${VAE_DIR}/wan_2.1_vae.safetensors" ]; then
-    echo "    - Descargando VAE Wan2.1..."
-    aria2c -x 16 -s 16 -k 1M -d "${VAE_DIR}" -o "wan_2.1_vae.safetensors" \
-        "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repack/resolve/main/split_files/vae/wan_2.1_vae.safetensors" || true
-fi
+# 1. Wan 2.1 Image-to-Video (I2V) 14B FP8 Model
+i2v_path = '/workspace/ComfyUI/models/diffusion_models/wan2.1_i2v_480p_14B_fp8_scaled.safetensors'
+if not os.path.exists(i2v_path):
+    print('  - Descargando Wan 2.1 I2V 14B FP8 Model...')
+    f = hf_hub_download(repo_id=repo, filename='split_files/diffusion_models/wan2.1_i2v_480p_14B_fp8_scaled.safetensors')
+    os.makedirs('/workspace/ComfyUI/models/diffusion_models', exist_ok=True)
+    shutil.copy(f, i2v_path)
 
-if [ ! -f "${CLIP_DIR}/umt5_xxl_fp8_e4m3fn_scaled.safetensors" ]; then
-    echo "    - Descargando Text Encoder UMT5-XXL..."
-    aria2c -x 16 -s 16 -k 1M -d "${CLIP_DIR}" -o "umt5_xxl_fp8_e4m3fn_scaled.safetensors" \
-        "https://huggingface.co/Comfy-Org/Wan_2.1_ComfyUI_repack/resolve/main/split_files/clip/umt5_xxl_fp8_e4m3fn_scaled.safetensors" || true
-fi
+# 2. Wan 2.1 Text-to-Video (T2V) 1.3B BF16 Model
+t2v_path = '/workspace/ComfyUI/models/diffusion_models/wan2.1_t2v_1.3B_bf16.safetensors'
+if not os.path.exists(t2v_path):
+    print('  - Descargando Wan 2.1 T2V 1.3B BF16 Model...')
+    f = hf_hub_download(repo_id=repo, filename='split_files/diffusion_models/wan2.1_t2v_1.3B_bf16.safetensors')
+    os.makedirs('/workspace/ComfyUI/models/diffusion_models', exist_ok=True)
+    shutil.copy(f, t2v_path)
 
-# B) Modelo de Upscaling Eficiente (Real-ESRGAN / 4x-UltraSharp)
-if [ ! -f "${UPSCALE_DIR}/4x-UltraSharp.pth" ]; then
-    echo "    - Descargando Modelo Upscaler 4x-UltraSharp / Real-ESRGAN..."
-    aria2c -x 16 -s 16 -k 1M -d "${UPSCALE_DIR}" -o "4x-UltraSharp.pth" \
-        "https://huggingface.co/lokidv/4x-UltraSharp/resolve/main/4x-UltraSharp.pth" || true
-fi
+# 3. Wan 2.1 VAE
+vae_path = '/workspace/ComfyUI/models/vae/wan_2.1_vae.safetensors'
+if not os.path.exists(vae_path):
+    print('  - Descargando Wan 2.1 VAE...')
+    f = hf_hub_download(repo_id=repo, filename='split_files/vae/wan_2.1_vae.safetensors')
+    os.makedirs('/workspace/ComfyUI/models/vae', exist_ok=True)
+    shutil.copy(f, vae_path)
+
+# 4. Text Encoder UMT5-XXL
+text_path = '/workspace/ComfyUI/models/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors'
+if not os.path.exists(text_path):
+    print('  - Descargando Text Encoder UMT5-XXL...')
+    f = hf_hub_download(repo_id=repo, filename='split_files/text_encoders/umt5_xxl_fp8_e4m3fn_scaled.safetensors')
+    os.makedirs('/workspace/ComfyUI/models/text_encoders', exist_ok=True)
+    os.makedirs('/workspace/ComfyUI/models/clip', exist_ok=True)
+    shutil.copy(f, text_path)
+    shutil.copy(f, '/workspace/ComfyUI/models/clip/umt5_xxl_fp8_e4m3fn_scaled.safetensors')
+
+# 5. Upscaler UltraSharp
+up_path = '/workspace/ComfyUI/models/upscale_models/4x-UltraSharp.pth'
+if not os.path.exists(up_path):
+    print('  - Descargando Upscaler 4x-UltraSharp...')
+    f = hf_hub_download(repo_id='uwg/upscaler', filename='ESRGAN/4x-UltraSharp.pth')
+    os.makedirs('/workspace/ComfyUI/models/upscale_models', exist_ok=True)
+    shutil.copy(f, up_path)
+"
 
 # -----------------------------------------------------------------------------
-# 5. Instalar Workflow Preconfigurado de Wan2.1 Video
+# 5. Instalar Workflows Preconfigurados (I2V + T2V)
 # -----------------------------------------------------------------------------
-echo "--> [5/7] Configurando Workflow predeterminado de Wan2.1 Video Generation..."
+echo "--> [5/7] Configurando Workflows de Wan2.1 (Image-to-Video y Text-to-Video)..."
 USER_WORKFLOWS_DIR="${COMFYUI_DIR}/user/default/workflows"
 mkdir -p "${USER_WORKFLOWS_DIR}"
 
-cat << 'EOF' > "${USER_WORKFLOWS_DIR}/wan21_video_workflow.json"
-{
-  "last_node_id": 10,
-  "last_link_id": 12,
-  "nodes": [
-    {
-      "id": 1,
-      "type": "LoadImage",
-      "pos": [50, 100],
-      "size": [315, 314],
-      "flags": {},
-      "order": 0,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {"name": "IMAGE", "type": "IMAGE", "links": []},
-        {"name": "MASK", "type": "MASK", "links": []}
-      ],
-      "properties": {"Node name for JS": "LoadImage"},
-      "widgets_values": ["input_cinematic_base.png", "image"]
-    },
-    {
-      "id": 2,
-      "type": "UNETLoader",
-      "pos": [400, 50],
-      "size": [350, 82],
-      "flags": {},
-      "order": 1,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {"name": "MODEL", "type": "MODEL", "links": [2]}
-      ],
-      "properties": {"Node name for JS": "UNETLoader"},
-      "widgets_values": ["wan2.1_t2v_1.3B_bf16.safetensors", "default"]
-    },
-    {
-      "id": 8,
-      "type": "CLIPLoader",
-      "pos": [400, 170],
-      "size": [350, 82],
-      "flags": {},
-      "order": 2,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {"name": "CLIP", "type": "CLIP", "links": [3, 11]}
-      ],
-      "properties": {"Node name for JS": "CLIPLoader"},
-      "widgets_values": ["umt5_xxl_fp8_e4m3fn_scaled.safetensors", "wan"]
-    },
-    {
-      "id": 9,
-      "type": "VAELoader",
-      "pos": [400, 290],
-      "size": [350, 82],
-      "flags": {},
-      "order": 3,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {"name": "VAE", "type": "VAE", "links": [8]}
-      ],
-      "properties": {"Node name for JS": "VAELoader"},
-      "widgets_values": ["wan_2.1_vae.safetensors"]
-    },
-    {
-      "id": 3,
-      "type": "CLIPTextEncode",
-      "pos": [400, 410],
-      "size": [400, 180],
-      "flags": {},
-      "order": 4,
-      "mode": 0,
-      "inputs": [
-        {"name": "clip", "type": "CLIP", "links": [3]}
-      ],
-      "outputs": [
-        {"name": "CONDITIONING", "type": "CONDITIONING", "links": [4]}
-      ],
-      "properties": {"Node name for JS": "CLIPTextEncode"},
-      "widgets_values": [
-        "Cinematic masterclass video, an epic professional shot, anamorphic lens flare, shallow depth of field, 35mm film grain, moody cinematic lighting, dramatic color grading, photorealistic, fluid natural motion. A futuristic drone flying over a cybernetic neon city at night."
-      ]
-    },
-    {
-      "id": 5,
-      "type": "CLIPTextEncode",
-      "pos": [400, 620],
-      "size": [400, 140],
-      "flags": {},
-      "order": 5,
-      "mode": 0,
-      "inputs": [
-        {"name": "clip", "type": "CLIP", "links": [11]}
-      ],
-      "outputs": [
-        {"name": "CONDITIONING", "type": "CONDITIONING", "links": [5]}
-      ],
-      "properties": {"Node name for JS": "CLIPTextEncode"},
-      "widgets_values": [
-        "low quality, blurry, distorted, jittery motion, abrupt cuts, deformed anatomy, artifacts, overexposed, static image."
-      ]
-    },
-    {
-      "id": 10,
-      "type": "EmptyWanVideoLatent",
-      "pos": [400, 790],
-      "size": [315, 106],
-      "flags": {},
-      "order": 6,
-      "mode": 0,
-      "inputs": [],
-      "outputs": [
-        {"name": "LATENT", "type": "LATENT", "links": [6]}
-      ],
-      "properties": {"Node name for JS": "EmptyWanVideoLatent"},
-      "widgets_values": [832, 480, 81, 1]
-    },
-    {
-      "id": 4,
-      "type": "KSampler",
-      "pos": [850, 100],
-      "size": [300, 470],
-      "flags": {},
-      "order": 7,
-      "mode": 0,
-      "inputs": [
-        {"name": "model", "type": "MODEL", "links": [2]},
-        {"name": "positive", "type": "CONDITIONING", "links": [4]},
-        {"name": "negative", "type": "CONDITIONING", "links": [5]},
-        {"name": "latent_image", "type": "LATENT", "links": [6]}
-      ],
-      "outputs": [
-        {"name": "LATENT", "type": "LATENT", "links": [7]}
-      ],
-      "properties": {"Node name for JS": "KSampler"},
-      "widgets_values": [
-        1337,
-        "randomize",
-        30,
-        6.5,
-        "euler",
-        "normal",
-        1.0
-      ]
-    },
-    {
-      "id": 6,
-      "type": "VAEDecode",
-      "pos": [1200, 100],
-      "size": [210, 80],
-      "flags": {},
-      "order": 8,
-      "mode": 0,
-      "inputs": [
-        {"name": "samples", "type": "LATENT", "links": [7]},
-        {"name": "vae", "type": "VAE", "links": [8]}
-      ],
-      "outputs": [
-        {"name": "IMAGE", "type": "IMAGE", "links": [9]}
-      ],
-      "properties": {"Node name for JS": "VAEDecode"},
-      "widgets_values": []
-    },
-    {
-      "id": 7,
-      "type": "VideoCombine",
-      "pos": [1450, 100],
-      "size": [315, 300],
-      "flags": {},
-      "order": 9,
-      "mode": 0,
-      "inputs": [
-        {"name": "images", "type": "IMAGE", "links": [9]}
-      ],
-      "outputs": [],
-      "properties": {"Node name for JS": "VideoCombine"},
-      "widgets_values": {
-        "frame_rate": 24,
-        "format": "video/h264-mp4",
-        "crf": 19,
-        "save_output": true
-      }
-    }
-  ],
-  "links": [
-    [2, 2, 0, 4, 0, "MODEL"],
-    [3, 8, 0, 3, 0, "CLIP"],
-    [4, 3, 0, 4, 1, "CONDITIONING"],
-    [5, 5, 0, 4, 2, "CONDITIONING"],
-    [6, 10, 0, 4, 3, "LATENT"],
-    [7, 4, 0, 6, 0, "LATENT"],
-    [8, 9, 0, 6, 1, "VAE"],
-    [9, 6, 0, 7, 0, "IMAGE"],
-    [11, 8, 0, 5, 0, "CLIP"]
-  ],
-  "groups": [],
-  "config": {},
-  "extra": {},
-  "version": 0.4
-}
-EOF
+if [ -f "${WORKSPACE_DIR}/workflows/wan21_i2v_workflow.json" ]; then
+    cp "${WORKSPACE_DIR}/workflows/wan21_i2v_workflow.json" "${USER_WORKFLOWS_DIR}/wan21_i2v_workflow.json"
+fi
+
+if [ -f "${WORKSPACE_DIR}/workflows/wan21_video_workflow.json" ]; then
+    cp "${WORKSPACE_DIR}/workflows/wan21_video_workflow.json" "${USER_WORKFLOWS_DIR}/wan21_video_workflow.json"
+fi
 
 # -----------------------------------------------------------------------------
 # 6. Configuración de Túnel Seguro (Cloudflare Tunnel)
