@@ -30,6 +30,7 @@ apt-get update && apt-get install -y --no-install-recommends \
     curl \
     aria2 \
     ffmpeg \
+    openssh-server \
     libgl1-mesa-glx \
     libglib2.0-0 \
     python3-pip \
@@ -37,6 +38,15 @@ apt-get update && apt-get install -y --no-install-recommends \
     python3-dev \
     build-essential \
     ca-certificates
+
+if [ -n "${PUBLIC_KEY:-}" ]; then
+    echo "--> Configurando SSH e inyectando PUBLIC_KEY..."
+    mkdir -p /root/.ssh
+    echo "${PUBLIC_KEY}" > /root/.ssh/authorized_keys
+    chmod 700 /root/.ssh
+    chmod 600 /root/.ssh/authorized_keys
+    service ssh start || true
+fi
 
 # -----------------------------------------------------------------------------
 # 2. Clonar / Actualizar ComfyUI
